@@ -8,6 +8,8 @@ monitor reset
 monitor halt
 load BUILD/DISCO_L475VG_IOT01A/GCC_ARM-DEBUG/firmware-st-b-l475e-iot01a.elf
 symbol-file BUILD/DISCO_L475VG_IOT01A/GCC_ARM-DEBUG/firmware-st-b-l475e-iot01a.elf
+#load BUILD/DISCO_L475VG_IOT01A/GCC_ARM-RELEASE/firmware-st-b-l475e-iot01a.elf
+#symbol-file BUILD/DISCO_L475VG_IOT01A/GCC_ARM-RELEASE/firmware-st-b-l475e-iot01a.elf
 
 break main
 

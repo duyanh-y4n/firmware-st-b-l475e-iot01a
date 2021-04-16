@@ -152,6 +152,14 @@ six = ">=1.0,<2.0"
 pyocd = ["pyocd (==0.14.0)"]
 
 [[package]]
+name = "pep8"
+version = "1.7.1"
+description = "Python style guide checker"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "prettytable"
 version = "1.0.1"
 description = "A simple Python library for easily displaying tabular data in a visually appealing ASCII table format"
@@ -234,7 +242,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "6cd2fa7f90d8f6e3280b67d3cf0a27bb517e72f24d76cb37bbceb513fbb10f57"
+content-hash = "e2b027cecaa9ad7352c9789af829d711cea27897e20e82bf46a122f9acbb8c2c"
 
 [metadata.files]
 appdirs = [
@@ -323,6 +331,10 @@ mbed-cli = [
 ]
 mbed-os-tools = [
     {file = "mbed_os_tools-1.8.4-py2.py3-none-any.whl", hash = "sha256:747e3128db84c8c8a4120ffa0d96ac258d58d1ef526bf2dcab0703de38ab95f2"},
+]
+pep8 = [
+    {file = "pep8-1.7.1-py2.py3-none-any.whl", hash = "sha256:b22cfae5db09833bb9bd7c8463b53e1a9c9b39f12e304a8d0bba729c501827ee"},
+    {file = "pep8-1.7.1.tar.gz", hash = "sha256:fe249b52e20498e59e0b5c5256aa52ee99fc295b26ec9eaa85776ffdb9fe6374"},
 ]
 prettytable = [
     {file = "prettytable-1.0.1-py2.py3-none-any.whl", hash = "sha256:e7e464e8f7ecfd9a74c67f8da35f2a7da3d827235ba0a4737bb6d4b19f4a04bb"},

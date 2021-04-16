@@ -7,6 +7,7 @@ authors = ["duyanh-y4n <duyanh.y4n.pham@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 mbed-cli = "^1.10.5"
+pep8 = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 

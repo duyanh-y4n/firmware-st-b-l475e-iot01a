@@ -1,0 +1,23 @@
+#/bin/bash
+#tmux new-window "pwd & sleep 10"
+
+# gdb
+tmux new-window "sleep 2 && arm-none-eabi-gdb -x duyanhy4nscripts/mbed.gdb"
+tmux rename-window 'mbed-debug'
+
+# monitor
+tmux splitw -h -p 40 "sleep 5 && picocom --imap lfcrlf --baud 115200 --parity n --stopbit 1 /dev/ttyUSB0"
+#tmux splitw -h -p 40 "sleep 2 && telnet 19021"
+#tmux splitw -v -p 50  'mosquitto_sub -h "192.168.5.24" -p 1883 -u admin -P hunghung -t "application/14/device/ffff801f12369601/rx" | jq ".fCnt, .deviceName, .devEUI, .object"'
+
+# debug interface
+# openocd
+#tmux splitw -v -p 20 "openocd -f interface/stlink-v2-1.cfg -f target/stm32l0.cfg"
+# jlink
+tmux splitw -v -p 20 "python duyanhy4nscripts/Y4N_SCRIPT_Debug_Server.py"
+
+# debug console
+#tmux splitw -v -p 50 "cd duyanhy4nscripts && ipython"
+
+# focus panel
+tmux selectp -t 0

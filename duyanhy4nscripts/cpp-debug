@@ -1,0 +1,7 @@
+#/bin/bash
+# gdb
+tmux new-window "sleep 2 && gdb -x duyanhy4nscripts/app.gdb"
+tmux rename-window 'app-debug'
+
+# focus panel
+tmux selectp -t 0

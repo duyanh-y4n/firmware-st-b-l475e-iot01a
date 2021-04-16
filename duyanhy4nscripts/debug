@@ -1,0 +1,5 @@
+#/bin/bash
+#./duyanhy4nscripts/loramacnode-debug
+duyanhy4nscripts/app-debug
+#duyanhy4nscripts/stm-debug
+#duyanhy4nscripts/mbed-debug

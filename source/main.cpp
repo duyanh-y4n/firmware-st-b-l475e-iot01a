@@ -52,8 +52,14 @@ const uint8_t PREDICTION_OUTPUT_CONFIG_LONG = 0x01; //long output
 const uint8_t PREDICTION_OUTPUT_CONFIG_SCI = 0xFF; //speech command interface output
 static uint8_t _prediction_output_config=PREDICTION_OUTPUT_CONFIG_SCI;
 
-// redirect this to other serial
+// TODO:redirect this to other serial
+#ifndef AT_OUTPUT
 #define AT_OUTPUT printf
+#endif //AT_OUTPUT
+
+#ifndef AT_DEBUG_OUTPUT
+#define AT_DEBUG_OUTPUT printf
+#endif //AT_DEBUG_OUTPUT
 
 void prv_get_prediction_output(){
     switch (_prediction_output_config) {
@@ -261,16 +267,16 @@ int send_prediction(ei_impulse_result_t* result){
     switch(_prediction_output_config){
         case PREDICTION_OUTPUT_CONFIG_SHORT:
             get_prediction(&my_prediction, result);
-            printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+            AT_DEBUG_OUTPUT("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
                 result->timing.dsp, result->timing.classification, result->timing.anomaly);
-            printf("    %s: %.5f\n", result->classification[my_prediction.class_id].label, result->classification[my_prediction.class_id].value);
-            printf("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
+            AT_DEBUG_OUTPUT("    %s: %.5f\n", result->classification[my_prediction.class_id].label, result->classification[my_prediction.class_id].value);
+            AT_DEBUG_OUTPUT("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
             break;
         case PREDICTION_OUTPUT_CONFIG_LONG:
-            printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+            AT_DEBUG_OUTPUT("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
                 result->timing.dsp, result->timing.classification, result->timing.anomaly);
             for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-                printf("    %s: %.5f\n", result->classification[ix].label, result->classification[ix].value);
+                AT_DEBUG_OUTPUT("    %s: %.5f\n", result->classification[ix].label, result->classification[ix].value);
             }
             break;
         default: //PREDICTION_OUTPUT_CONFIG_SCI
@@ -286,38 +292,38 @@ int send_prediction(ei_impulse_result_t* result){
 
 void run_nn(bool debug) {
     // summary of inferencing settings (from model_metadata.h)
-    printf("Inferencing settings:\n");
-    printf("\tInterval: %.2f ms.\n", (float)EI_CLASSIFIER_INTERVAL_MS);
-    printf("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
-    printf("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
-    printf("\tNo. of classes: %d\n", sizeof(ei_classifier_inferencing_categories) / sizeof(ei_classifier_inferencing_categories[0]));
+    AT_DEBUG_OUTPUT("Inferencing settings:\n");
+    AT_DEBUG_OUTPUT("\tInterval: %.2f ms.\n", (float)EI_CLASSIFIER_INTERVAL_MS);
+    AT_DEBUG_OUTPUT("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
+    AT_DEBUG_OUTPUT("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
+    AT_DEBUG_OUTPUT("\tNo. of classes: %d\n", sizeof(ei_classifier_inferencing_categories) / sizeof(ei_classifier_inferencing_categories[0]));
 
-    printf("Starting inferencing, press 'b' to break\n");
+    AT_DEBUG_OUTPUT("Starting inferencing, press 'b' to break\n");
 
     while (1) {
-        printf("Starting inferencing in 2 seconds...\n");
+        AT_DEBUG_OUTPUT("Starting inferencing in 2 seconds...\n");
 
         // instead of wait_ms, we'll wait on the signal, this allows threads to cancel us...
         if (ei_sleep(2000) != EI_IMPULSE_OK) {
             break;
         }
 
-        printf("Recording\n");
+        AT_DEBUG_OUTPUT("Recording\n");
 
         bool m = ei_microphone_record(EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16, 20, false);
         if (!m) {
-            printf("ERR: Failed to record audio...\n");
+            AT_DEBUG_OUTPUT("ERR: Failed to record audio...\n");
             break;
         }
 
-        printf("Recording OK\n");
+        AT_DEBUG_OUTPUT("Recording OK\n");
 
         signal_t signal = ei_microphone_get_signal();
         ei_impulse_result_t result = { 0 };
 
         EI_IMPULSE_ERROR r = run_classifier(&signal, &result, debug);
         if (r != EI_IMPULSE_OK) {
-            printf("ERR: Failed to run classifier (%d)\n", r);
+            AT_DEBUG_OUTPUT("ERR: Failed to run classifier (%d)\n", r);
             break;
         }
 
@@ -325,7 +331,7 @@ void run_nn(bool debug) {
         send_prediction(&result);
 
 #if EI_CLASSIFIER_HAS_ANOMALY == 1
-        printf("    anomaly score: %.3f\n", result.anomaly);
+        AT_DEBUG_OUTPUT("    anomaly score: %.3f\n", result.anomaly);
 #endif
     }
 }
@@ -335,13 +341,13 @@ void run_nn_continuous(bool debug) {
     int print_results = -(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
 
     // summary of inferencing settings (from model_metadata.h)
-    printf("Inferencing settings:\n");
-    printf("\tInterval: %.2f ms.\n", (float)EI_CLASSIFIER_INTERVAL_MS);
-    printf("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
-    printf("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
-    printf("\tNo. of classes: %d\n", sizeof(ei_classifier_inferencing_categories) / sizeof(ei_classifier_inferencing_categories[0]));
+    AT_DEBUG_OUTPUT("Inferencing settings:\n");
+    AT_DEBUG_OUTPUT("\tInterval: %.2f ms.\n", (float)EI_CLASSIFIER_INTERVAL_MS);
+    AT_DEBUG_OUTPUT("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
+    AT_DEBUG_OUTPUT("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
+    AT_DEBUG_OUTPUT("\tNo. of classes: %d\n", sizeof(ei_classifier_inferencing_categories) / sizeof(ei_classifier_inferencing_categories[0]));
 
-    printf("Starting inferencing, press 'b' to break\n");
+    AT_DEBUG_OUTPUT("Starting inferencing, press 'b' to break\n");
 
     run_classifier_init();
     ei_microphone_inference_start(EI_CLASSIFIER_SLICE_SIZE);
@@ -350,7 +356,7 @@ void run_nn_continuous(bool debug) {
 
         bool m = ei_microphone_inference_record();
         if (!m) {
-            printf("ERR: Failed to record audio...\n");
+            AT_DEBUG_OUTPUT("ERR: Failed to record audio...\n");
             break;
         }
 
@@ -361,7 +367,7 @@ void run_nn_continuous(bool debug) {
 
         EI_IMPULSE_ERROR r = run_classifier_continuous(&signal, &result, debug);
         if (r != EI_IMPULSE_OK) {
-            printf("ERR: Failed to run classifier (%d)\n", r);
+            AT_DEBUG_OUTPUT("ERR: Failed to run classifier (%d)\n", r);
             break;
         }
 
@@ -369,7 +375,7 @@ void run_nn_continuous(bool debug) {
             // print the predictions
             send_prediction(&result);
             #if EI_CLASSIFIER_HAS_ANOMALY == 1
-            printf("    anomaly score: %.3f\n", result.anomaly);
+            AT_DEBUG_OUTPUT("    anomaly score: %.3f\n", result.anomaly);
             #endif
 
             print_results = 0;
@@ -516,31 +522,31 @@ void prvAtCmdInit(){
 int main() {
     // mbed_mem_trace_set_callback(mbed_mem_trace_default_callback);
 
-    printf("\n\nHello from the Edge Impulse Device SDK.\n");
-    printf("Compiled on %s at %s\n", __DATE__, __TIME__);
+    AT_DEBUG_OUTPUT("\n\nHello from the Edge Impulse Device SDK.\n");
+    AT_DEBUG_OUTPUT("Compiled on %s at %s\n", __DATE__, __TIME__);
 
     int err = fs.mount(&fs_bd);
-    printf("Mounting file system: %s\n", (err ? "Fail :(" : "OK"));
+    AT_DEBUG_OUTPUT("Mounting file system: %s\n", (err ? "Fail :(" : "OK"));
     if (err) {
         // Reformat if we can't mount the filesystem
         // this should only happen on the first boot
-        printf("No filesystem found, formatting... ");
+        AT_DEBUG_OUTPUT("No filesystem found, formatting... ");
         fflush(stdout);
         err = fs.reformat(&fs_bd);
-        printf("%s\n", (err ? "Fail :(" : "OK"));
+        AT_DEBUG_OUTPUT("%s\n", (err ? "Fail :(" : "OK"));
         if (err) {
             error("error: %s (%d)\n", strerror(-err), err);
         }
         err = fs.mount(&fs_bd);
         if (err) {
-            printf("Failed to mount file system (%d)\n", err);
+            AT_DEBUG_OUTPUT("Failed to mount file system (%d)\n", err);
             return 1;
         }
     }
 
     err = temp_bd.init();
     if (err != 0) {
-        printf("Failed to initialize temp blockdevice\n");
+        AT_DEBUG_OUTPUT("Failed to initialize temp blockdevice\n");
         return 1;
     }
 
@@ -564,10 +570,10 @@ int main() {
     EI_CONFIG_ERROR cr = ei_config_init(&config_ctx);
 
     if (cr != EI_CONFIG_OK) {
-        printf("Failed to initialize configuration (%d)\n", cr);
+        AT_DEBUG_OUTPUT("Failed to initialize configuration (%d)\n", cr);
     }
     else {
-        printf("Loaded configuration\n");
+        AT_DEBUG_OUTPUT("Loaded configuration\n");
     }
 
     ws_client = new EdgeWsClient(
@@ -584,15 +590,15 @@ int main() {
         connect_to_wifi();
     }
 
-    printf("Type AT+HELP to see a list of commands.\n");
+    AT_DEBUG_OUTPUT("Type AT+HELP to see a list of commands.\n");
 
-    printf("------------------------\n");
-    printf("SPEECH COMMAND INTERFACE\n");
-    printf("Supported command ");
+    AT_DEBUG_OUTPUT("------------------------\n");
+    AT_DEBUG_OUTPUT("SPEECH COMMAND INTERFACE\n");
+    AT_DEBUG_OUTPUT("Supported command ");
     for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-        printf("%s |", ei_classifier_inferencing_categories[ix]); //this is bad
+        AT_DEBUG_OUTPUT("%s |", ei_classifier_inferencing_categories[ix]); //this is bad
     }
-    printf("\n");
+    AT_DEBUG_OUTPUT("\n");
 
     // print_memory_info();
 

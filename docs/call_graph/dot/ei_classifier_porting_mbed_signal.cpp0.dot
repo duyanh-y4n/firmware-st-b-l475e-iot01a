@@ -1,0 +1,38 @@
+strict digraph {
+	graph [bb="0,0,555.95,144",
+		overlap=False,
+		rankdir=LR,
+		splines=true
+	];
+	node [label="\N"];
+	ei_run_impulse_check_canceled	[height=0.5,
+		nest_level=0,
+		pos="155.99,126",
+		src_line=38,
+		width=4.3329];
+	osThreadFlagsGet	[height=0.5,
+		nest_level=1,
+		pos="451.96,72",
+		src_line=-1,
+		width=2.6539];
+	ei_run_impulse_check_canceled -> osThreadFlagsGet	[pos="e,385.61,84.966 244.33,111.09 266.42,107.23 290.08,103.03 311.97,99 332.64,95.192 355.01,90.916 375.64,86.909"];
+	osThreadFlagsClear	[height=0.5,
+		nest_level=1,
+		pos="451.96,126",
+		src_line=-1,
+		width=2.8886];
+	ei_run_impulse_check_canceled -> osThreadFlagsClear	[pos="e,347.64,126 312.15,126 320.69,126 329.19,126 337.54,126"];
+	ei_sleep	[height=0.5,
+		nest_level=0,
+		pos="155.99,72",
+		src_line=50,
+		width=1.336];
+	ei_sleep -> osThreadFlagsGet	[pos="e,356.34,72 204.22,72 242.4,72 297.59,72 346.1,72"];
+	ei_sleep -> osThreadFlagsClear	[pos="e,382.79,112.48 200.12,79.283 231.23,84.594 274.23,92.048 311.97,99 331.72,102.64 353.02,106.7 372.87,110.55"];
+	sleep_for	[height=0.5,
+		nest_level=1,
+		pos="451.96,18",
+		src_line=-1,
+		width=1.4624];
+	ei_sleep -> sleep_for	[pos="e,405.16,26.414 199.42,64.206 251.02,54.727 338.26,38.702 395.23,28.237"];
+}

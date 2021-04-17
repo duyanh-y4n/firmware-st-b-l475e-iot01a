@@ -1,0 +1,8 @@
+strict digraph {
+	graph [bb="0,0,0,0",
+		overlap=False,
+		rankdir=LR,
+		splines=true
+	];
+	node [label="\N"];
+}

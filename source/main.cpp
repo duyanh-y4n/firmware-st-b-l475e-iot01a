@@ -47,6 +47,46 @@ EventQueue main_application_queue;
 EdgeSampler *sampler;
 DigitalOut led(LED1);
 
+const uint8_t PREDICTION_OUTPUT_CONFIG_SHORT = 0x00; //short output
+const uint8_t PREDICTION_OUTPUT_CONFIG_LONG = 0x01; //long output
+const uint8_t PREDICTION_OUTPUT_CONFIG_SCI = 0xFF; //speech command interface output
+static uint8_t _prediction_output_config=PREDICTION_OUTPUT_CONFIG_SCI;
+
+// redirect this to other serial
+#define AT_OUTPUT printf
+
+void prv_get_prediction_output(){
+    switch (_prediction_output_config) {
+        case PREDICTION_OUTPUT_CONFIG_SHORT:
+            AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=SHORT\r\n");
+            break;
+        case PREDICTION_OUTPUT_CONFIG_LONG:
+            AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=LONG\r\n");
+            break;
+        case PREDICTION_OUTPUT_CONFIG_SCI:
+            AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=SCI\r\n");
+            break;
+        default:
+            AT_OUTPUT("ERROR\r\n");
+            break;
+    }
+}
+
+void prv_set_prediction_output(char* prediction_output_config){
+    switch (prediction_output_config[0]) {
+        case '0': //SHORT output
+            _prediction_output_config = PREDICTION_OUTPUT_CONFIG_SHORT;
+            break;
+        case '1': //LONG output
+            _prediction_output_config = PREDICTION_OUTPUT_CONFIG_LONG;
+            break;
+        default: //SCI output
+            _prediction_output_config = PREDICTION_OUTPUT_CONFIG_SCI;
+            break;
+    }
+}
+
+
 static unsigned char repl_stack[4 * 1024];
 static AtCmdRepl repl(&main_application_queue, sizeof(repl_stack), repl_stack);
 
@@ -58,6 +98,8 @@ static bool network_connected = false;
 static ei_sensor_t sensor_list[2] = { 0 };
 
 static bool microphone_present;
+
+//extern char* ei_classifier_inferencing_categories[];
 
 void print_memory_info() {
     // Grab the heap statistics
@@ -184,6 +226,36 @@ void run_nn(bool debug) {
 
 #elif defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
 
+typedef struct {
+    float probability;
+    size_t class_id;
+    bool is_ok;
+} prediction_t;
+prediction_t my_prediction;
+
+#define CLASS_NOISE_INDEX 0
+#define CLASS_UNKNOWN_INDEX 1
+#define MEANINGFUL_CLASS_INDEX 1
+#define PREDICT_THRESHOLD 0.6
+int get_prediction(prediction_t* prediction, ei_impulse_result_t* result){
+    prediction->probability = 0.0;
+    prediction->is_ok = false;
+    for (size_t ix = MEANINGFUL_CLASS_INDEX; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        // get max_probability
+        if(result->classification[ix].value > prediction->probability) {
+            prediction->probability = result->classification[ix].value;
+            prediction->class_id = ix;
+        }
+    }
+    if(result->classification[prediction->class_id].value<PREDICT_THRESHOLD){
+        prediction->is_ok = false;
+    }
+    else {
+        prediction->is_ok = true;
+    }
+    return 0;
+}
+
 void run_nn(bool debug) {
     // summary of inferencing settings (from model_metadata.h)
     printf("Inferencing settings:\n");
@@ -222,11 +294,30 @@ void run_nn(bool debug) {
         }
 
         // print the predictions
-        printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-            result.timing.dsp, result.timing.classification, result.timing.anomaly);
-        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-            printf("    %s: %.5f\n", result.classification[ix].label, result.classification[ix].value);
+        switch(_prediction_output_config){
+            case PREDICTION_OUTPUT_CONFIG_SHORT:
+                get_prediction(&my_prediction, &result);
+                printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+                    result.timing.dsp, result.timing.classification, result.timing.anomaly);
+                printf("    %s: %.5f\n", result.classification[my_prediction.class_id].label, result.classification[my_prediction.class_id].value);
+                printf("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
+                break;
+            case PREDICTION_OUTPUT_CONFIG_LONG:
+                printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+                    result.timing.dsp, result.timing.classification, result.timing.anomaly);
+                for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+                    printf("    %s: %.5f\n", result.classification[ix].label, result.classification[ix].value);
+                }
+                break;
+            default: //PREDICTION_OUTPUT_CONFIG_SCI
+                get_prediction(&my_prediction, &result);
+                AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result.classification[my_prediction.class_id].label,
+                        result.classification[my_prediction.class_id].value,
+                        my_prediction.is_ok?"GOOD":"BAD"
+                        );
+                break;
         }
+
 #if EI_CLASSIFIER_HAS_ANOMALY == 1
         printf("    anomaly score: %.3f\n", result.anomaly);
 #endif
@@ -406,6 +497,20 @@ void fill_memory() {
     printf("Allocated: %u bytes\n", allocated);
 }
 
+void prvAtCmdInit(){
+    ei_at_register_generic_cmds();
+    ei_at_cmd_register("FILLMEMORY", "Try and fill the full RAM, to report free heap stats", fill_memory);
+    ei_at_cmd_register("RUNIMPULSE", "Run the impulse", run_nn_normal);
+    ei_at_cmd_register("RUNIMPULSEDEBUG", "Run the impulse with debug messages", run_nn_debug);
+    #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
+    ei_at_cmd_register("RUNIMPULSECONT", "Run the impulse continuously", run_nn_continuous_normal);
+    ei_at_cmd_register("RUNIMPULSECONTDEBUG", "Run the impulse continuously with debug messages", run_nn_continuous_debug);
+    //TODO: rename this commands
+    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT=", "set prediction output format", prv_set_prediction_output);
+    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT?", "get prediction output format", prv_get_prediction_output);
+    #endif
+}
+
 int main() {
     // mbed_mem_trace_set_callback(mbed_mem_trace_default_callback);
 
@@ -471,20 +576,21 @@ int main() {
         &repl);
     sampler = new EdgeSampler(ei_config_get_context(), ei_config_get_config(), ws_client);
 
-    ei_at_register_generic_cmds();
-    ei_at_cmd_register("FILLMEMORY", "Try and fill the full RAM, to report free heap stats", fill_memory);
-    ei_at_cmd_register("RUNIMPULSE", "Run the impulse", run_nn_normal);
-    ei_at_cmd_register("RUNIMPULSEDEBUG", "Run the impulse with debug messages", run_nn_debug);
-    #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
-    ei_at_cmd_register("RUNIMPULSECONT", "Run the impulse continuously", run_nn_continuous_normal);
-    ei_at_cmd_register("RUNIMPULSECONTDEBUG", "Run the impulse continuously with debug messages", run_nn_continuous_debug);
-    #endif
+    prvAtCmdInit();
 
     if (ei_config_has_wifi()) {
         connect_to_wifi();
     }
 
     printf("Type AT+HELP to see a list of commands.\n");
+
+    printf("------------------------\n");
+    printf("SPEECH COMMAND INTERFACE\n");
+    printf("Supported command ");
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        printf("%s |", ei_classifier_inferencing_categories[ix]); //this is bad
+    }
+    printf("\n");
 
     // print_memory_info();
 

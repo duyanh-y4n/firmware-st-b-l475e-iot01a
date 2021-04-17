@@ -5,6 +5,10 @@ tmux rename-window 'app-debug'
 
 # monitor
 tmux splitw -h -p 40 "sleep 5 && picocom --imap lfcrlf --baud 115200 --parity n --stopbit 1 /dev/ttyACM1"
+
+# TODO:
+#tmux splitw -h -p 40 "sleep 5 && cd ~/Work/Projects/y4n_learn_project/embedded_IOT_development/com_serial/python-com-serial && poetry run SDC start --port /dev/ttyACM1 --term_char AT --suggestion_file=template/SCI.txt --baud 115200"
+
 #tmux splitw -h -p 40 "sleep 1 && telnet localhost 19021"
 #tmux splitw -v -p 50  'mosquitto_sub -h "192.168.5.24" -p 1883 -u admin -P hunghung -t "application/14/device/ffff801f12369601/rx" | jq ".fCnt, .deviceName, .devEUI, .object"'
 

@@ -18,10 +18,10 @@ fast_clean_build:
 	# remove compiled model and app source
 	rm -rf BUILD/DISCO_L475VG_IOT01A/GCC_ARM-DEBUG/source
 	# recompile
-	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug $(CFLAGS)
+	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug --color $(CFLAGS)
 
 debug_build:
-	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug $(CFLAGS)
+	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug --color $(CFLAGS)
 
 debug:
 	sh duyanhy4nscripts/debug

@@ -58,20 +58,50 @@ static bool _prediction_output_good_only=false;
 #define AT_OUTPUT printf
 #endif //AT_OUTPUT
 
-#ifndef AT_DEBUG_OUTPUT
-#define AT_DEBUG_OUTPUT printf
-#endif //AT_DEBUG_OUTPUT
+//#ifndef AT_DEBUG_OUTPUT
+//#define AT_DEBUG_OUTPUT printf
+//#endif //AT_DEBUG_OUTPUT
+static bool AT_DEBUG_OUTPUT_ENABLE = true;
+void AT_DEBUG_OUTPUT(const char *format, ...){
+    if(true==AT_DEBUG_OUTPUT_ENABLE){
+        va_list myargs;
+        va_start(myargs, format);
+        printf("[DEBUG]");
+        vprintf(format, myargs);
+        va_end(myargs);
+    }
+}
+
+void set_debug_output_en(char *arg){
+    uint8_t good_only = atoi(arg);
+    switch (good_only) {
+        case 0x01:
+            AT_DEBUG_OUTPUT_ENABLE = true;
+            AT_OUTPUT("OK\r\n");
+            break;
+        case 0x00:
+            AT_DEBUG_OUTPUT_ENABLE = false;
+            AT_OUTPUT("OK\r\n");
+            break;
+        default:
+            AT_OUTPUT("ERROR\r\n");
+            break;
+    }
+}
 
 void prv_get_prediction_output(){
     switch (_prediction_output_config) {
         case PREDICTION_OUTPUT_CONFIG_SHORT:
             AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=SHORT\r\n");
+            AT_OUTPUT("OK\r\n");
             break;
         case PREDICTION_OUTPUT_CONFIG_LONG:
             AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=LONG\r\n");
+            AT_OUTPUT("OK\r\n");
             break;
         case PREDICTION_OUTPUT_CONFIG_SCI:
             AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=SCI\r\n");
+            AT_OUTPUT("OK\r\n");
             break;
         default:
             AT_OUTPUT("ERROR\r\n");
@@ -80,15 +110,19 @@ void prv_get_prediction_output(){
 }
 
 void prv_set_prediction_output(char* prediction_output_config){
-    switch (prediction_output_config[0]) {
-        case '0': //SHORT output
+    uint8_t temp;
+    switch (temp) {
+        case PREDICTION_OUTPUT_CONFIG_SHORT: //SHORT output
             _prediction_output_config = PREDICTION_OUTPUT_CONFIG_SHORT;
+            AT_OUTPUT("OK\r\n");
             break;
-        case '1': //LONG output
+        case PREDICTION_OUTPUT_CONFIG_LONG: //LONG output
             _prediction_output_config = PREDICTION_OUTPUT_CONFIG_LONG;
+            AT_OUTPUT("OK\r\n");
             break;
         default: //SCI output
             _prediction_output_config = PREDICTION_OUTPUT_CONFIG_SCI;
+            AT_OUTPUT("OK\r\n");
             break;
     }
 }
@@ -100,7 +134,7 @@ void set_predict_good_only(char *arg){
             _prediction_output_good_only = true;
             AT_OUTPUT("OK\r\n");
             break;
-        case 0x02:
+        case 0x00:
             _prediction_output_good_only = false;
             AT_OUTPUT("OK\r\n");
             break;
@@ -259,7 +293,7 @@ prediction_t my_prediction;
 #define CLASS_NOISE_INDEX 0
 #define CLASS_UNKNOWN_INDEX 1
 #define MEANINGFUL_CLASS_INDEX 1
-static float PREDICT_THRESHOLD=0.6;
+static float PREDICT_THRESHOLD=0.2;
 
 void get_predict_theadshold(){
     AT_DEBUG_OUTPUT("+PTHRES=%.2f\r\n", PREDICT_THRESHOLD);
@@ -270,13 +304,21 @@ void set_predict_theadshold(char* arg){
     float threshold = atof(arg);
     if(threshold<1.0){
         PREDICT_THRESHOLD = threshold;
-        AT_DEBUG_OUTPUT("+PTHRES=%.2f\r\n", PREDICT_THRESHOLD);
-        AT_DEBUG_OUTPUT("OK\r\n");
+        AT_OUTPUT("+PTHRES=%.2f\r\n", PREDICT_THRESHOLD);
+        AT_OUTPUT("OK\r\n");
     }
     else{
         AT_DEBUG_OUTPUT("ERROR\r\n");
     }
     return;
+}
+
+void get_supported_class(){
+    AT_OUTPUT("+CLASSLIST=");
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        AT_OUTPUT("%s,", ei_classifier_inferencing_categories[ix]); //this is bad
+    }
+    AT_OUTPUT("\r\n");
 }
 
 int get_prediction(prediction_t* prediction, ei_impulse_result_t* result){
@@ -325,7 +367,7 @@ int send_prediction(ei_impulse_result_t* result){
             }
             else{
                 if(my_prediction.is_ok){
-                    AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result->classification[my_prediction.class_id].label,
+                    AT_OUTPUT("+UPCLA=%s,%.5f\r\n", result->classification[my_prediction.class_id].label,
                             result->classification[my_prediction.class_id].value
                             );
                 }
@@ -564,6 +606,8 @@ void prvAtCmdInit(){
     ei_at_cmd_register("PTHRES=", "set good prediction threshold", set_predict_theadshold);
     ei_at_cmd_register("PTHRES?", "get good prediction threshold", get_predict_theadshold);
     ei_at_cmd_register("PGOODONLY=", "config get only good prediction (affect only SCI FORMAT)", set_predict_good_only);
+    ei_at_cmd_register("DOUTPUTEN=", "enable debug output", set_debug_output_en);
+    ei_at_cmd_register("CLASSLIST", "enable debug output", get_supported_class);
     #endif
 }
 
@@ -642,11 +686,6 @@ int main() {
 
     AT_DEBUG_OUTPUT("------------------------\n");
     AT_DEBUG_OUTPUT("SPEECH COMMAND INTERFACE\n");
-    AT_DEBUG_OUTPUT("Supported command ");
-    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-        AT_DEBUG_OUTPUT("%s |", ei_classifier_inferencing_categories[ix]); //this is bad
-    }
-    AT_DEBUG_OUTPUT("\n");
 
     // print_memory_info();
 

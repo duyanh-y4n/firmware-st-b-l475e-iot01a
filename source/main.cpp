@@ -256,6 +256,34 @@ int get_prediction(prediction_t* prediction, ei_impulse_result_t* result){
     return 0;
 }
 
+int send_prediction(ei_impulse_result_t* result){
+    // print the predictions
+    switch(_prediction_output_config){
+        case PREDICTION_OUTPUT_CONFIG_SHORT:
+            get_prediction(&my_prediction, result);
+            printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+                result->timing.dsp, result->timing.classification, result->timing.anomaly);
+            printf("    %s: %.5f\n", result->classification[my_prediction.class_id].label, result->classification[my_prediction.class_id].value);
+            printf("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
+            break;
+        case PREDICTION_OUTPUT_CONFIG_LONG:
+            printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+                result->timing.dsp, result->timing.classification, result->timing.anomaly);
+            for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+                printf("    %s: %.5f\n", result->classification[ix].label, result->classification[ix].value);
+            }
+            break;
+        default: //PREDICTION_OUTPUT_CONFIG_SCI
+            get_prediction(&my_prediction, result);
+            AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result->classification[my_prediction.class_id].label,
+                    result->classification[my_prediction.class_id].value,
+                    my_prediction.is_ok?"GOOD":"BAD"
+                    );
+            break;
+    }
+    return 0;
+}
+
 void run_nn(bool debug) {
     // summary of inferencing settings (from model_metadata.h)
     printf("Inferencing settings:\n");
@@ -294,29 +322,7 @@ void run_nn(bool debug) {
         }
 
         // print the predictions
-        switch(_prediction_output_config){
-            case PREDICTION_OUTPUT_CONFIG_SHORT:
-                get_prediction(&my_prediction, &result);
-                printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-                    result.timing.dsp, result.timing.classification, result.timing.anomaly);
-                printf("    %s: %.5f\n", result.classification[my_prediction.class_id].label, result.classification[my_prediction.class_id].value);
-                printf("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
-                break;
-            case PREDICTION_OUTPUT_CONFIG_LONG:
-                printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-                    result.timing.dsp, result.timing.classification, result.timing.anomaly);
-                for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-                    printf("    %s: %.5f\n", result.classification[ix].label, result.classification[ix].value);
-                }
-                break;
-            default: //PREDICTION_OUTPUT_CONFIG_SCI
-                get_prediction(&my_prediction, &result);
-                AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result.classification[my_prediction.class_id].label,
-                        result.classification[my_prediction.class_id].value,
-                        my_prediction.is_ok?"GOOD":"BAD"
-                        );
-                break;
-        }
+        send_prediction(&result);
 
 #if EI_CLASSIFIER_HAS_ANOMALY == 1
         printf("    anomaly score: %.3f\n", result.anomaly);
@@ -361,11 +367,7 @@ void run_nn_continuous(bool debug) {
 
         if(++print_results >= (EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW >> 1)) {
             // print the predictions
-            printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-                result.timing.dsp, result.timing.classification, result.timing.anomaly);
-            for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-                printf("    %s: %.5f\n", result.classification[ix].label, result.classification[ix].value);
-            }
+            send_prediction(&result);
             #if EI_CLASSIFIER_HAS_ANOMALY == 1
             printf("    anomaly score: %.3f\n", result.anomaly);
             #endif

@@ -428,24 +428,24 @@ void ei_at_register_generic_cmds() {
     ei_at_cmd_register("DEVICEINFO?", "Lists device information", &at_device_info);
     ei_at_cmd_register("SENSORS?", "Lists sensors", &at_list_sensors);
     ei_at_cmd_register("RESET", "Reset the system", &at_reset);
-    ei_at_cmd_register("WIFI?", "Lists current WiFi credentials", &at_get_wifi);
-    ei_at_cmd_register("WIFI=", "Sets current WiFi credentials (SSID,PASSWORD,SECURITY)", &at_set_wifi);
-    ei_at_cmd_register("SCANWIFI", "Scans for WiFi networks", &at_scan_wifi);
+    //ei_at_cmd_register("WIFI?", "Lists current WiFi credentials", &at_get_wifi);
+    //ei_at_cmd_register("WIFI=", "Sets current WiFi credentials (SSID,PASSWORD,SECURITY)", &at_set_wifi);
+    //ei_at_cmd_register("SCANWIFI", "Scans for WiFi networks", &at_scan_wifi);
     ei_at_cmd_register("SAMPLESETTINGS?", "Lists current sampling settings", &at_get_sample_settings);
     ei_at_cmd_register("SAMPLESETTINGS=", "Sets current sampling settings (LABEL,INTERVAL_MS,LENGTH_MS)", &at_set_sample_settings);
     ei_at_cmd_register("SAMPLESETTINGS=", "Sets current sampling settings (LABEL,INTERVAL_MS,LENGTH_MS,HMAC_KEY)",
         &at_set_sample_settings_w_hmac);
-    ei_at_cmd_register("UPLOADSETTINGS?", "Lists current upload settings", &at_get_upload_settings);
-    ei_at_cmd_register("UPLOADSETTINGS=", "Sets current upload settings (APIKEY,PATH)", &at_set_upload_settings);
-    ei_at_cmd_register("UPLOADHOST=", "Sets upload host (HOST)", &at_set_upload_host);
+    //ei_at_cmd_register("UPLOADSETTINGS?", "Lists current upload settings", &at_get_upload_settings);
+    //ei_at_cmd_register("UPLOADSETTINGS=", "Sets current upload settings (APIKEY,PATH)", &at_set_upload_settings);
+    //ei_at_cmd_register("UPLOADHOST=", "Sets upload host (HOST)", &at_set_upload_host);
     ei_at_cmd_register("MGMTSETTINGS?", "Lists current management settings", &at_get_mgmt_settings);
     ei_at_cmd_register("MGMTSETTINGS=", "Sets current management settings (URL)", &at_set_mgmt_settings);
     ei_at_cmd_register("LISTFILES", "Lists all files on the device", &at_list_files);
-    ei_at_cmd_register("READFILE=", "Read a specific file (as base64)", &at_read_file);
-    ei_at_cmd_register("READBUFFER=", "Read from the temporary buffer (as base64) (START,LENGTH)", &at_read_buffer);
+    //ei_at_cmd_register("READFILE=", "Read a specific file (as base64)", &at_read_file);
+    //ei_at_cmd_register("READBUFFER=", "Read from the temporary buffer (as base64) (START,LENGTH)", &at_read_buffer);
     ei_at_cmd_register("UNLINKFILE=", "Unlink a specific file", &at_unlink_file);
-    ei_at_cmd_register("UPLOADFILE=", "Upload a specific file", &at_upload_file);
-    ei_at_cmd_register("SAMPLESTART=", "Start sampling", &at_sample_start);
+    //ei_at_cmd_register("UPLOADFILE=", "Upload a specific file", &at_upload_file);
+    //ei_at_cmd_register("SAMPLESTART=", "Start sampling", &at_sample_start);
 }
 
 #endif // _EDGE_IMPULSE_AT_COMMANDS_CONFIG_H_

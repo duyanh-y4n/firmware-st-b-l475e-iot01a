@@ -51,6 +51,7 @@ const uint8_t PREDICTION_OUTPUT_CONFIG_SHORT = 0x00; //short output
 const uint8_t PREDICTION_OUTPUT_CONFIG_LONG = 0x01; //long output
 const uint8_t PREDICTION_OUTPUT_CONFIG_SCI = 0xFF; //speech command interface output
 static uint8_t _prediction_output_config=PREDICTION_OUTPUT_CONFIG_SCI;
+static bool _prediction_output_good_only=false;
 
 // TODO:redirect this to other serial
 #ifndef AT_OUTPUT
@@ -92,6 +93,22 @@ void prv_set_prediction_output(char* prediction_output_config){
     }
 }
 
+void set_predict_good_only(char *arg){
+    uint8_t good_only = atoi(arg);
+    switch (good_only) {
+        case 0x01:
+            _prediction_output_good_only = true;
+            AT_OUTPUT("OK\r\n");
+            break;
+        case 0x02:
+            _prediction_output_good_only = false;
+            AT_OUTPUT("OK\r\n");
+            break;
+        default:
+            AT_OUTPUT("ERROR\r\n");
+            break;
+    }
+}
 
 static unsigned char repl_stack[4 * 1024];
 static AtCmdRepl repl(&main_application_queue, sizeof(repl_stack), repl_stack);
@@ -242,7 +259,26 @@ prediction_t my_prediction;
 #define CLASS_NOISE_INDEX 0
 #define CLASS_UNKNOWN_INDEX 1
 #define MEANINGFUL_CLASS_INDEX 1
-#define PREDICT_THRESHOLD 0.6
+static float PREDICT_THRESHOLD=0.6;
+
+void get_predict_theadshold(){
+    AT_DEBUG_OUTPUT("+PTHRES=%.2f\r\n", PREDICT_THRESHOLD);
+    return;
+}
+
+void set_predict_theadshold(char* arg){
+    float threshold = atof(arg);
+    if(threshold<1.0){
+        PREDICT_THRESHOLD = threshold;
+        AT_DEBUG_OUTPUT("+PTHRES=%.2f\r\n", PREDICT_THRESHOLD);
+        AT_DEBUG_OUTPUT("OK\r\n");
+    }
+    else{
+        AT_DEBUG_OUTPUT("ERROR\r\n");
+    }
+    return;
+}
+
 int get_prediction(prediction_t* prediction, ei_impulse_result_t* result){
     prediction->probability = 0.0;
     prediction->is_ok = false;
@@ -281,10 +317,19 @@ int send_prediction(ei_impulse_result_t* result){
             break;
         default: //PREDICTION_OUTPUT_CONFIG_SCI
             get_prediction(&my_prediction, result);
-            AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result->classification[my_prediction.class_id].label,
-                    result->classification[my_prediction.class_id].value,
-                    my_prediction.is_ok?"GOOD":"BAD"
-                    );
+            if (false==_prediction_output_good_only) {
+                AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result->classification[my_prediction.class_id].label,
+                        result->classification[my_prediction.class_id].value,
+                        my_prediction.is_ok?"GOOD":"BAD"
+                        );
+            }
+            else{
+                if(my_prediction.is_ok){
+                    AT_OUTPUT("+UPCLA=%s,%.5f,%s\r\n", result->classification[my_prediction.class_id].label,
+                            result->classification[my_prediction.class_id].value
+                            );
+                }
+            }
             break;
     }
     return 0;
@@ -516,6 +561,9 @@ void prvAtCmdInit(){
     //TODO: rename this commands
     ei_at_cmd_register("CONFIGPREDICTIONOUTPUT=", "set prediction output format", prv_set_prediction_output);
     ei_at_cmd_register("CONFIGPREDICTIONOUTPUT?", "get prediction output format", prv_get_prediction_output);
+    ei_at_cmd_register("PTHRES=", "set good prediction threshold", set_predict_theadshold);
+    ei_at_cmd_register("PTHRES?", "get good prediction threshold", get_predict_theadshold);
+    ei_at_cmd_register("PGOODONLY=", "config get only good prediction (affect only SCI FORMAT)", set_predict_good_only);
     #endif
 }
 

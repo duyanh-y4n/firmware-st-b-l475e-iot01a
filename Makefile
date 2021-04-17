@@ -14,6 +14,12 @@ clean:
 build:
 	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug
 
+fast_clean_build:
+	# remove compiled model and app source
+	rm -rf BUILD/DISCO_L475VG_IOT01A/GCC_ARM-DEBUG/source
+	# recompile
+	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug $(CFLAGS)
+
 debug_build:
 	mbed compile -t GCC_ARM -m DISCO_L475VG_IOT01A --profile=debug $(CFLAGS)
 

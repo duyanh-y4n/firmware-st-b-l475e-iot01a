@@ -8,3 +8,4 @@ mbed-os/cmsis/TARGET_CORTEX_M/arm_math.h
 source/ingestion-sdk-c/mbedtls/
 source/ingestion-sdk-c/QCBOR/
 source/ingestion-sdk-c/test/
+trained-model-sdk/test_firmware/main.cpp

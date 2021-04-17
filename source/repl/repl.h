@@ -154,6 +154,7 @@ public:
 
 private:
     void rx_callback(char c) {
+#ifndef REPL_DISABLE_TTY
         // control characters start with 0x1b and end with a-zA-Z
         if (inControlChar) {
 
@@ -254,12 +255,16 @@ private:
             return;
         }
 
+#endif
         switch (c) {
             case '\r': /* want to run the buffer */
+#ifndef REPL_DISABLE_TTY
                 pc.putc(c);
                 pc.putc('\n');
+#endif
                 queue->call(callback(this, &Repl::runBuffer));
                 break;
+#ifndef REPL_DISABLE_TTY
             case 0x08: /* backspace */
             case 0x7f: /* also backspace on some terminals */
                 queue->call(callback(this, &Repl::handleBackspace));
@@ -271,13 +276,16 @@ private:
                 pc.printf("\033[s"); // save current position
 
                 break; /* break out of the callback (ignore all other characters) */
+#endif
             default:
                 size_t curr_pos = buffer.getPosition();
                 size_t buffer_size = buffer.size();
 
                 if (curr_pos == buffer_size) {
                     buffer.add(c);
+#ifndef REPL_DISABLE_TTY
                     pc.putc(c);
+#endif
                 }
                 else {
                     // super inefficient...

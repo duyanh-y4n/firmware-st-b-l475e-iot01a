@@ -6,7 +6,7 @@ Here are the trained model for deployment.
 
 - choose model
 - unzip file to source folder
-- run command AT+RUNIMPULSE or AT+RUNIMPULSECONT
+- compile test firmware and run command AT+RUNIMPULSE or AT+RUNIMPULSECONT
 
 ## model description
 
@@ -42,7 +42,7 @@ callbacks.append(BatchLoggerCallback(BATCH_SIZE, train_sample_count))
 
 ### trained-model-sdk/speech_command_interface-v3.zip
 
-+ 18 cmd:  unknown  backward  follow  forward  four  go  left  no  off  on  one  right  stop  three  two  visual  yes
++ 16 cmd:  unknown  backward  follow  forward  four  go  left  no  off  on  one  right  stop  three  two  visual  yes
 + feature: mfcc
 + model architecture
 ```python

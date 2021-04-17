@@ -41,18 +41,18 @@
 #define EI_CLASSIFIER_DATATYPE_FLOAT32           1
 #define EI_CLASSIFIER_DATATYPE_INT8              9
 
-#define EI_CLASSIFIER_PROJECT_ID                 27245
+#define EI_CLASSIFIER_PROJECT_ID                 20675
 #define EI_CLASSIFIER_PROJECT_OWNER              "Duy Anh Pham"
-#define EI_CLASSIFIER_PROJECT_NAME               "speech_command_interface v1"
-#define EI_CLASSIFIER_PROJECT_DEPLOY_VERSION     1
-#define EI_CLASSIFIER_NN_INPUT_FRAME_SIZE        650
+#define EI_CLASSIFIER_PROJECT_NAME               "speech_command_interface"
+#define EI_CLASSIFIER_PROJECT_DEPLOY_VERSION     7
+#define EI_CLASSIFIER_NN_INPUT_FRAME_SIZE        598
 #define EI_CLASSIFIER_RAW_SAMPLE_COUNT           16000
 #define EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME      1
 #define EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE       (EI_CLASSIFIER_RAW_SAMPLE_COUNT * EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME)
 #define EI_CLASSIFIER_INPUT_WIDTH                0
 #define EI_CLASSIFIER_INPUT_HEIGHT               0
 #define EI_CLASSIFIER_INTERVAL_MS                0.0625
-#define EI_CLASSIFIER_LABEL_COUNT                4
+#define EI_CLASSIFIER_LABEL_COUNT                18
 #define EI_CLASSIFIER_HAS_ANOMALY                0
 #define EI_CLASSIFIER_FREQUENCY                  16000
 #define EI_CLASSIFIER_USE_QUANTIZED_DSP_BLOCK    0
@@ -61,11 +61,11 @@
 #define EI_CLASSIFIER_OBJECT_DETECTION           0
 
 
-#define EI_CLASSIFIER_TFLITE_ARENA_SIZE          10355
+#define EI_CLASSIFIER_TFLITE_ARENA_SIZE          14099
 #define EI_CLASSIFIER_TFLITE_INPUT_DATATYPE      EI_CLASSIFIER_DATATYPE_INT8
 #define EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED     1
-#define EI_CLASSIFIER_TFLITE_INPUT_SCALE         0.042399678379297256
-#define EI_CLASSIFIER_TFLITE_INPUT_ZEROPOINT     -15
+#define EI_CLASSIFIER_TFLITE_INPUT_SCALE         0.04633231833577156
+#define EI_CLASSIFIER_TFLITE_INPUT_ZEROPOINT     -16
 #define EI_CLASSIFIER_TFLITE_OUTPUT_DATATYPE     EI_CLASSIFIER_DATATYPE_INT8
 #define EI_CLASSIFIER_TFLITE_OUTPUT_QUANTIZED    1
 #define EI_CLASSIFIER_TFLITE_OUTPUT_SCALE        0.00390625
@@ -90,7 +90,7 @@
 #endif
 #endif // EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE && EI_CLASSIFIER_USE_FULL_TFLITE == 1
 
-const char* ei_classifier_inferencing_categories[] = { "_noise", "_unknown", "go", "stop" };
+const char* ei_classifier_inferencing_categories[] = { "_noise", "_unknown", "backward", "follow", "forward", "four", "go", "left", "no", "off", "on", "one", "right", "stop", "three", "two", "visual", "yes" };
 
 typedef struct {
     uint16_t implementation_version;
@@ -182,7 +182,7 @@ ei_dsp_config_mfcc_t ei_dsp_config_3 = {
     2,
     1,
     13,
-    0.02000f,
+    0.10000f,
     0.02000f,
     32,
     256,

@@ -1,1 +1,2 @@
-nnoremap <F3> :Start sh linux_build_debug.sh
+nnoremap <F3> :Start sh linux_build_debug.sh build
+nnoremap <F2> :Start sh linux_build_debug.sh clean

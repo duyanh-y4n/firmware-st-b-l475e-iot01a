@@ -7,7 +7,8 @@ CFLAGS= $(shell cat $(BUILD_FLAGS))
 ################################################################################
 # recommended: run mbed cli with poetry shell!!
 
-.PHONY: all clean build debug call_graph debug
+.PHONY: all
+all: clean build debug call_graph debug
 clean:
 	rm -rf BUILD
 

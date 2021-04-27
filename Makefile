@@ -34,3 +34,6 @@ call_graph:
 	sh gen_call_graph.sh source/tflite-model/*.cpp
 	sh gen_call_graph.sh source/edge-impulse-sdk/tensorflow/lite/c/*.c
 	sh gen_call_graph.sh source/edge-impulse-sdk/tensorflow/lite/core/api/*.cc
+
+doxygen:
+	doxygen Doxyfile

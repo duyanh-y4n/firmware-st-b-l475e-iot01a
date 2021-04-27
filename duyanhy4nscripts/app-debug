@@ -4,7 +4,7 @@ tmux new-window "sleep 2 && arm-none-eabi-gdb -x duyanhy4nscripts/app.gdb"
 tmux rename-window 'app-debug'
 
 # monitor
-tmux splitw -h -p 40 "sleep 5 && picocom --imap lfcrlf --baud 115200 --parity n --stopbit 1 /dev/ttyACM1"
+#tmux splitw -h -p 40 "sleep 5 && picocom --imap lfcrlf --baud 115200 --parity n --stopbit 1 /dev/ttyACM1"
 
 # TODO:
 #tmux splitw -h -p 40 "sleep 5 && cd ~/Work/Projects/y4n_learn_project/embedded_IOT_development/com_serial/python-com-serial && poetry run SDC start --port /dev/ttyACM1 --term_char AT --suggestion_file=template/SCI.txt --baud 115200"

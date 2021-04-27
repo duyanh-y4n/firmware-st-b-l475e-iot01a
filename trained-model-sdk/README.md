@@ -39,6 +39,8 @@ callbacks.append(BatchLoggerCallback(BATCH_SIZE, train_sample_count))
 
 + performance
 [[speech-command-interface-v1.png]]
+[SCIv1](SCIv1.pdf)
+[SCIv1_deploy](SCIv1_deploy.pdf)
 
 ### trained-model-sdk/speech_command_interface-v3.zip
 
@@ -68,3 +70,4 @@ callbacks.append(BatchLoggerCallback(BATCH_SIZE, train_sample_count))
 
 + performance
 [SCIv3](SCIv3.pdf)
+[SCIv3_deploy](SCIv3_deploy.pdf)

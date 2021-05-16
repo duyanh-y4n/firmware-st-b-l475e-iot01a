@@ -450,40 +450,6 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
  * Sample raw data
  */
 bool ei_microphone_sample_start() {
-    // this sensor does not have settable interval...
-    ei_config_set_sample_interval(static_cast<float>(1000) / static_cast<float>(AUDIO_SAMPLING_FREQUENCY));
-
-    printf("Sampling settings:\n");
-    printf("\tInterval: %.5f ms.\n", (float)ei_config_get_config()->sample_interval_ms);
-    printf("\tLength: %lu ms.\n", ei_config_get_config()->sample_length_ms);
-    printf("\tName: %s\n", ei_config_get_config()->sample_label);
-    printf("\tHMAC Key: %s\n", ei_config_get_config()->sample_hmac_key);
-
-    char filename[256];
-    int fn_r = snprintf(filename, 256, "/fs/%s", ei_config_get_config()->sample_label);
-    if (fn_r <= 0) {
-        printf("ERR: Failed to allocate file name\n");
-        return false;
-    }
-
-    printf("\tFile name: %s\n", filename);
-
-    bool r = ei_microphone_record(ei_config_get_config()->sample_length_ms, 2000, true);
-    if (!r) {
-        return r;
-    }
-
-    // print_memory_info();
-
-    // finalize and upload the file
-    finish_and_upload(filename, ei_config_get_config()->sample_length_ms);
-
-    while (1) {
-        if (is_uploaded) break;
-        ThisThread::sleep_for(10);
-    }
-
-    return true;
 }
 
 /**

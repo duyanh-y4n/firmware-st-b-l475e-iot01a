@@ -29,12 +29,6 @@
 
 #define EDGE_IMPULSE_AT_COMMAND_VERSION        "1.3.0"
 
-static void at_clear_config() {
-    printf("Clearing config and restarting system...\n");
-    ei_config_clear();
-    NVIC_SystemReset();
-}
-
 static void at_device_info() {
     uint8_t id_buffer[32] = { 0 };
     size_t id_size;
@@ -54,40 +48,10 @@ static void at_device_info() {
     printf("AT Version: %s\n", EDGE_IMPULSE_AT_COMMAND_VERSION);
 }
 
-static void at_list_sensors() {
-    if (ei_config_get_context()->get_sensor_list == NULL) {
-        return;
-    }
-
-    const ei_sensor_t *list;
-    size_t list_size;
-
-    int r = ei_config_get_context()->get_sensor_list(&list, &list_size);
-    if (r != 0) {
-        printf("Failed to get sensor list (%d)\n", r);
-        return;
-    }
-
-    for (size_t ix = 0; ix < list_size; ix++) {
-        printf("Name: %s, Max sample length: %hus, Frequencies: [", list[ix].name, list[ix].max_sample_length_s);
-        for (size_t fx = 0; fx < EDGE_IMPULSE_MAX_FREQUENCIES; fx++) {
-            if (list[ix].frequencies[fx] != 0.0f) {
-                if (fx != 0) {
-                    printf(", ");
-                }
-                printf("%.2fHz", list[ix].frequencies[fx]);
-            }
-        }
-        printf("]\n");
-    }
-}
-
 static void at_list_config() {
     printf("===== Device info =====\n");
     at_device_info();
     printf("\n");
-    printf("===== Sensors ======\n");
-    at_list_sensors();
 }
 
 
@@ -100,7 +64,6 @@ void ei_at_register_generic_cmds() {
     ei_at_cmd_register("HELP", "Lists all commands", &ei_at_cmd_print_info);
     ei_at_cmd_register("CONFIG?", "Lists complete config", &at_list_config);
     ei_at_cmd_register("DEVICEINFO?", "Lists device information", &at_device_info);
-    ei_at_cmd_register("SENSORS?", "Lists sensors", &at_list_sensors);
     ei_at_cmd_register("RESET", "Reset the system", &at_reset);
 }
 

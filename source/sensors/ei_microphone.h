@@ -52,7 +52,6 @@ static uint8_t AUDIO_THREAD_STACK[AUDIO_THREAD_STACK_SIZE];
 static bool is_recording = false;
 static uint32_t audio_event_count = 0;
 static uint32_t max_audio_event_count = 0;
-static size_t mic_header_length = 0;
 
 extern SlicingBlockDevice temp_bd;
 static EventQueue mic_queue;
@@ -98,9 +97,6 @@ static void audio_buffer_callback(AUDIO_BUFFER_EVENT event) {
     if (ret != 0) {
         printf("ERR: audio_buffer_callback %d write failed (%d)\n", event, ret);
     }
-}
-
-static void finish_and_upload(char *filename, uint32_t sample_length_ms) {
 }
 
 /**
@@ -216,16 +212,6 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
         }
     }
 
-    // Gonna write the header to the header block
-    // the issue here is that we bound the context already to FILE
-    // which we don't have here... hmm
-    {
-        mic_header_length = 0;
-
-
-        TEMP_FILE_IX = mic_header_length;
-    }
-
     erase_timer.stop();
     // printf("Erase timer took %d ms.\n", erase_timer.read_ms());
 
@@ -273,25 +259,17 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
     audio_buffer_callback(FINALIZE);
 
     // too much data? cut it
-    if (TEMP_FILE_IX > mic_header_length + (sample_length_ms * (AUDIO_SAMPLING_FREQUENCY / 1000) * 2)) {
-        TEMP_FILE_IX = mic_header_length + (sample_length_ms * (AUDIO_SAMPLING_FREQUENCY / 1000) * 2);
+    if (TEMP_FILE_IX > (sample_length_ms * (AUDIO_SAMPLING_FREQUENCY / 1000) * 2)) {
+        TEMP_FILE_IX = (sample_length_ms * (AUDIO_SAMPLING_FREQUENCY / 1000) * 2);
     }
 
     return true;
 }
 
 /**
- * Sample raw data
- */
-bool ei_microphone_sample_start() {
-}
-
-/**
  * Get raw audio signal data
  */
 static int raw_audio_signal_get_data(size_t offset, size_t length, float *out_ptr) {
-    offset += mic_header_length;
-
     EIDSP_i16 *temp = (EIDSP_i16*)calloc(length, sizeof(EIDSP_i16));
     if (!temp) {
         printf("raw_audio_signal_get_data - malloc failed\n");
@@ -316,7 +294,7 @@ static int raw_audio_signal_get_data(size_t offset, size_t length, float *out_pt
  */
 signal_t ei_microphone_get_signal() {
     signal_t signal;
-    signal.total_length = (TEMP_FILE_IX - mic_header_length) / sizeof(int16_t);
+    signal.total_length = (TEMP_FILE_IX ) / sizeof(int16_t);
     signal.get_data = &raw_audio_signal_get_data;
     return signal;
 }

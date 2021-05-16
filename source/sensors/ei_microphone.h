@@ -24,7 +24,6 @@
 #define _EI_MICROPHONE_H_
 
 #include "stm32l475e_iot01_audio.h"
-#include "ei_sampler.h"
 #include "ei_microphone_inference.h"
 
 /**
@@ -37,9 +36,6 @@
 
 static uint16_t PCM_Buffer[PCM_BUFFER_LEN / 2];
 static BSP_AUDIO_Init_t mic_params;
-
-// semaphore to fire when one of the buffers is full
-static Semaphore buffer_full_semaphore(0);
 
 // buffer, needs to be aligned to temp flash erase size
 #define AUDIO_BUFFER_NB_SAMPLES         2048
@@ -58,27 +54,13 @@ static uint32_t audio_event_count = 0;
 static uint32_t max_audio_event_count = 0;
 static size_t mic_header_length = 0;
 
-extern EdgeSampler *sampler;
 extern SlicingBlockDevice temp_bd;
-extern EdgeWsClient *ws_client;
 static EventQueue mic_queue;
-static bool is_uploaded = false;
 static size_t TEMP_FILE_IX = 0;
 
 extern void print_memory_info();
 extern EventQueue main_application_queue;
 extern DigitalOut led;
-
-static unsigned char ei_mic_ctx_buffer[1024];
-static sensor_aq_signing_ctx_t ei_mic_signing_ctx;
-static sensor_aq_mbedtls_hs256_ctx_t ei_mic_hs_ctx;
-static sensor_aq_ctx ei_mic_ctx = {
-    { ei_mic_ctx_buffer, 1024 },
-    &ei_mic_signing_ctx,
-    &fwrite,
-    &fseek,
-    &time
-};
 
 static void ei_microphone_blink() {
     led = !led;
@@ -111,8 +93,6 @@ static void audio_buffer_callback(AUDIO_BUFFER_EVENT event) {
     int ret = temp_bd.program(start, TEMP_FILE_IX, buffer_size);
     TEMP_FILE_IX += buffer_size;
 
-    ei_mic_ctx.signature_ctx->update(ei_mic_ctx.signature_ctx, (uint8_t*)start, buffer_size);
-
     last_audio_buffer_event = event;
 
     if (ret != 0) {
@@ -121,32 +101,6 @@ static void audio_buffer_callback(AUDIO_BUFFER_EVENT event) {
 }
 
 static void finish_and_upload(char *filename, uint32_t sample_length_ms) {
-    printf("Done sampling, total bytes collected: %u\n", TEMP_FILE_IX);
-
-    {
-        Ticker t;
-        t.attach(&ei_microphone_blink, 1.0f);
-
-        if (ws_client->is_connected()) {
-            ws_client->send_sample_uploading();
-        }
-
-        printf("[1/1] Uploading file to Edge Impulse...\n");
-
-        Timer upload_timer;
-        upload_timer.start();
-
-        sampler->upload_buffer(&temp_bd, 0, TEMP_FILE_IX, filename);
-
-        upload_timer.stop();
-        printf("[1/1] Uploading file to Edge Impulse OK (took %d ms.)\n", upload_timer.read_ms());
-
-        is_uploaded = true;
-    }
-
-    led = 0;
-
-    printf("OK\n");
 }
 
 /**
@@ -229,7 +183,6 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
 
     AUDIO_BUFFER_IX = 0;
     is_recording = false;
-    is_uploaded = false;
     audio_event_count = 0;
     max_audio_event_count = sample_length_ms; // each event is 1ms., very convenient
     TEMP_FILE_IX = 0;
@@ -269,63 +222,6 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
     {
         mic_header_length = 0;
 
-        sensor_aq_init_mbedtls_hs256_context(&ei_mic_signing_ctx, &ei_mic_hs_ctx, ei_config_get_config()->sample_hmac_key);
-
-        sensor_aq_payload_info payload = {
-            WiFiInterface::get_default_instance()->get_mac_address(),
-            EDGE_STRINGIZE(TARGET_NAME),
-            1000.0f / static_cast<float>(AUDIO_SAMPLING_FREQUENCY),
-            { { "audio", "wav" } }
-        };
-
-        int tr = sensor_aq_init(&ei_mic_ctx, &payload, NULL, true);
-        if (tr != AQ_OK) {
-            printf("sensor_aq_init failed (%d)\n", tr);
-            return 1;
-        }
-
-        // then we're gonna find the last byte that is not 0x00 in the CBOR buffer.
-        // That should give us the whole header
-        size_t end_of_header_ix = 0;
-        for (int ix = static_cast<int>(ei_mic_ctx.cbor_buffer.len) - 1; ix >= 0; ix--) {
-            if (((uint8_t*)ei_mic_ctx.cbor_buffer.ptr)[ix] != 0x0) {
-                end_of_header_ix = ix;
-                break;
-            }
-        }
-
-        if (end_of_header_ix == 0) {
-            printf("Failed to find end of header\n");
-            return false;
-        }
-
-        // Write to blockdevice
-        tr = temp_bd.program(ei_mic_ctx.cbor_buffer.ptr, 0, end_of_header_ix);
-        if (tr != 0) {
-            printf("Failed to write to header blockdevice (%d)\n", tr);
-            return false;
-        }
-
-        mic_header_length += end_of_header_ix;
-
-        // Then we're gonna write our reference ("Ref-BINARY-i16" as CBOR string and then 0xFF to finish up the infinite length array)
-        uint8_t ref[] = {
-            0x6E, 0x52, 0x65, 0x66, 0x2D, 0x42, 0x49, 0x4E, 0x41, 0x52, 0x59, 0x2D, 0x69, 0x31, 0x36, 0xFF
-        };
-        tr = temp_bd.program(ref, end_of_header_ix, sizeof(ref));
-        if (tr != 0) {
-            printf("Failed to write to header blockdevice (%d)\n", tr);
-            return false;
-        }
-
-        mic_header_length += sizeof(ref);
-
-        // and update the signature
-        tr = ei_mic_ctx.signature_ctx->update(ei_mic_ctx.signature_ctx, ref, sizeof(ref));
-        if (tr != 0) {
-            printf("Failed to update signature from header (%d)\n", tr);
-            return false;
-        }
 
         TEMP_FILE_IX = mic_header_length;
     }
@@ -342,13 +238,6 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
 
     ThisThread::sleep_for(start_delay_ms);
 
-    if (ws_client->is_connected()) {
-        ws_client->send_sample_started();
-    }
-
-    if (print_start_messages) {
-        printf("Sampling...\n");
-    }
 
     led = 1;
 
@@ -386,61 +275,6 @@ bool ei_microphone_record(uint32_t sample_length_ms, uint32_t start_delay_ms, bo
     // too much data? cut it
     if (TEMP_FILE_IX > mic_header_length + (sample_length_ms * (AUDIO_SAMPLING_FREQUENCY / 1000) * 2)) {
         TEMP_FILE_IX = mic_header_length + (sample_length_ms * (AUDIO_SAMPLING_FREQUENCY / 1000) * 2);
-    }
-
-    int ctx_err = ei_mic_ctx.signature_ctx->finish(ei_mic_ctx.signature_ctx, ei_mic_ctx.hash_buffer.buffer);
-    if (ctx_err != 0) {
-        printf("Failed to finish signature (%d)\n", ctx_err);
-        return false;
-    }
-
-    // load the first page in flash...
-    uint8_t *page_buffer = (uint8_t*)malloc(BD_ERASE_SIZE);
-    if (!page_buffer) {
-        printf("Failed to allocate a page buffer to write the hash\n");
-        return false;
-    }
-
-    int j = temp_bd.read(page_buffer, 0, BD_ERASE_SIZE);
-    if (j != 0) {
-        printf("Failed to read first page (%d)\n", j);
-        free(page_buffer);
-        return false;
-    }
-
-    // update the hash
-    uint8_t *hash = ei_mic_ctx.hash_buffer.buffer;
-    // we have allocated twice as much for this data (because we also want to be able to represent in hex)
-    // thus only loop over the first half of the bytes as the signature_ctx has written to those
-    for (size_t hash_ix = 0; hash_ix < ei_mic_ctx.hash_buffer.size / 2; hash_ix++) {
-        // this might seem convoluted, but snprintf() with %02x is not always supported e.g. by newlib-nano
-        // we encode as hex... first ASCII char encodes top 4 bytes
-        uint8_t first = (hash[hash_ix] >> 4) & 0xf;
-        // second encodes lower 4 bytes
-        uint8_t second = hash[hash_ix] & 0xf;
-
-        // if 0..9 -> '0' (48) + value, if >10, then use 'a' (97) - 10 + value
-        char first_c = first >= 10 ? 87 + first : 48 + first;
-        char second_c = second >= 10 ? 87 + second : 48 + second;
-
-        page_buffer[ei_mic_ctx.signature_index + (hash_ix * 2) + 0] = first_c;
-        page_buffer[ei_mic_ctx.signature_index + (hash_ix * 2) + 1] = second_c;
-    }
-
-    j = temp_bd.erase(0, BD_ERASE_SIZE);
-    if (j != 0) {
-        printf("Failed to erase first page (%d)\n", j);
-        free(page_buffer);
-        return false;
-    }
-
-    j = temp_bd.program(page_buffer, 0, BD_ERASE_SIZE);
-
-    free(page_buffer);
-
-    if (j != 0) {
-        printf("Failed to write first page with updated hash (%d)\n", j);
-        return false;
     }
 
     return true;

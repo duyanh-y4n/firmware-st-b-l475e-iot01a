@@ -456,7 +456,7 @@ int main() {
     // print_memory_info();
 
     //repl.start_repl();
-    //run_nn_continuous_normal();
+    run_nn_continuous_normal();
     run_nn_normal();
 
     main_application_queue.dispatch_forever();

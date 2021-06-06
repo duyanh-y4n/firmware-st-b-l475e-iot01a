@@ -44,7 +44,7 @@ const uint8_t PREDICTION_OUTPUT_CONFIG_SHORT = 0x00; //short output
 const uint8_t PREDICTION_OUTPUT_CONFIG_LONG = 0x01; //long output
 const uint8_t PREDICTION_OUTPUT_CONFIG_SCI = 0xFF; //speech command interface output
 static uint8_t _prediction_output_config=PREDICTION_OUTPUT_CONFIG_SCI;
-static bool _prediction_output_good_only=false;
+static bool _prediction_output_good_only=true;
 
 // TODO:redirect this to other serial
 #ifndef AT_OUTPUT
@@ -408,8 +408,6 @@ void prvAtCmdInit(){
 
 int main() {
     // mbed_mem_trace_set_callback(mbed_mem_trace_default_callback);
-
-    AT_DEBUG_OUTPUT("\n\nHello from the Edge Impulse Device SDK.\n");
     AT_DEBUG_OUTPUT("Compiled on %s at %s\n", __DATE__, __TIME__);
 
     int err = fs.mount(&fs_bd);
@@ -441,12 +439,7 @@ int main() {
     microphone_present = ei_microphone_init();
 
     // intialize configuration
-
     prvAtCmdInit();
-
-    //if (ei_config_has_wifi()) {
-        //connect_to_wifi();
-    //}
 
     AT_DEBUG_OUTPUT("Type AT+HELP to see a list of commands.\n");
 

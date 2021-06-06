@@ -102,8 +102,8 @@ void at_get_prediction_output(){
     }
 }
 
-void at_set_prediction_output(char* prediction_output_config){
-    uint8_t temp;
+void at_set_prediction_output(char* arg){
+    uint8_t temp=atoi(arg);
     switch (temp) {
         case PREDICTION_OUTPUT_CONFIG_SHORT: //SHORT output
             _prediction_output_config = PREDICTION_OUTPUT_CONFIG_SHORT;
@@ -224,14 +224,14 @@ int send_prediction(ei_impulse_result_t* result){
             get_prediction(&my_prediction, result);
             AT_DEBUG_OUTPUT("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
                 result->timing.dsp, result->timing.classification, result->timing.anomaly);
-            AT_DEBUG_OUTPUT("    %s: %.5f\n", result->classification[my_prediction.class_id].label, result->classification[my_prediction.class_id].value);
-            AT_DEBUG_OUTPUT("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
+            AT_OUTPUT("    %s: %.5f\n", result->classification[my_prediction.class_id].label, result->classification[my_prediction.class_id].value);
+            AT_OUTPUT("    %s prediction\n", my_prediction.is_ok?"GOOD":"BAD");
             break;
         case PREDICTION_OUTPUT_CONFIG_LONG:
             AT_DEBUG_OUTPUT("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
                 result->timing.dsp, result->timing.classification, result->timing.anomaly);
             for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-                AT_DEBUG_OUTPUT("    %s: %.5f\n", result->classification[ix].label, result->classification[ix].value);
+                AT_OUTPUT("    %s: %.5f\n", result->classification[ix].label, result->classification[ix].value);
             }
             break;
         default: //PREDICTION_OUTPUT_CONFIG_SCI
@@ -254,13 +254,50 @@ int send_prediction(ei_impulse_result_t* result){
     return 0;
 }
 
-void run_nn(bool debug) {
+void print_inference_summary(){
     // summary of inferencing settings (from model_metadata.h)
     AT_DEBUG_OUTPUT("Inferencing settings:\n");
     AT_DEBUG_OUTPUT("\tInterval: %.2f ms.\n", (float)EI_CLASSIFIER_INTERVAL_MS);
     AT_DEBUG_OUTPUT("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
     AT_DEBUG_OUTPUT("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
     AT_DEBUG_OUTPUT("\tNo. of classes: %d\n", sizeof(ei_classifier_inferencing_categories) / sizeof(ei_classifier_inferencing_categories[0]));
+}
+
+void run_nn_single(){
+    _prediction_output_good_only = false; //disable prediction filter
+
+    AT_DEBUG_OUTPUT("Recording\n");
+
+    bool m = ei_microphone_record(EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16, 20, false);
+    if (!m) {
+        AT_DEBUG_OUTPUT("ERR: Failed to record audio...\n");
+        return;
+    }
+
+    AT_DEBUG_OUTPUT("Recording OK\n");
+
+    AT_DEBUG_OUTPUT("Starting inferencing \n");
+    signal_t signal = ei_microphone_get_signal();
+    ei_impulse_result_t result = { 0 };
+
+    EI_IMPULSE_ERROR r = run_classifier(&signal, &result, false);
+    if (r != EI_IMPULSE_OK) {
+        AT_DEBUG_OUTPUT("ERR: Failed to run classifier (%d)\n", r);
+        return;
+    }
+
+    // print the predictions
+    send_prediction(&result);
+
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    AT_DEBUG_OUTPUT("    anomaly score: %.3f\n", result.anomaly);
+#endif
+
+    AT_OUTPUT("OK\n");
+}
+
+void run_nn(bool debug) {
+    print_inference_summary();
 
     AT_DEBUG_OUTPUT("Starting inferencing, press 'b' to break\n");
 
@@ -304,12 +341,7 @@ void run_nn_continuous(bool debug) {
 
     int print_results = -(EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW);
 
-    // summary of inferencing settings (from model_metadata.h)
-    AT_DEBUG_OUTPUT("Inferencing settings:\n");
-    AT_DEBUG_OUTPUT("\tInterval: %.2f ms.\n", (float)EI_CLASSIFIER_INTERVAL_MS);
-    AT_DEBUG_OUTPUT("\tFrame size: %d\n", EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
-    AT_DEBUG_OUTPUT("\tSample length: %d ms.\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT / 16);
-    AT_DEBUG_OUTPUT("\tNo. of classes: %d\n", sizeof(ei_classifier_inferencing_categories) / sizeof(ei_classifier_inferencing_categories[0]));
+    print_inference_summary();
 
     AT_DEBUG_OUTPUT("Starting inferencing, press 'b' to break\n");
 
@@ -390,14 +422,15 @@ void fill_memory() {
 void prvAtCmdInit(){
     ei_at_register_generic_cmds();
     //ei_at_cmd_register("FILLMEMORY", "Try and fill the full RAM, to report free heap stats", fill_memory);
+    ei_at_cmd_register("RUNSINGLE", "Run a single prediction", run_nn_single);
     ei_at_cmd_register("RUNIMPULSE", "Run the impulse", run_nn_normal);
-    ei_at_cmd_register("RUNIMPULSEDEBUG", "Run the impulse with debug messages", run_nn_debug);
+    //ei_at_cmd_register("RUNIMPULSEDEBUG", "Run the impulse with debug messages", run_nn_debug);
     #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
     ei_at_cmd_register("RUNIMPULSECONT", "Run the impulse continuously", run_nn_continuous_normal);
-    ei_at_cmd_register("RUNIMPULSECONTDEBUG", "Run the impulse continuously with debug messages", run_nn_continuous_debug);
+    //ei_at_cmd_register("RUNIMPULSECONTDEBUG", "Run the impulse continuously with debug messages", run_nn_continuous_debug);
     //TODO: rename this commands
-    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT=", "set prediction output format", at_set_prediction_output);
-    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT?", "get prediction output format", at_get_prediction_output);
+    ei_at_cmd_register("CONFPOUTPUT=", "set prediction output format", at_set_prediction_output);
+    ei_at_cmd_register("CONFPOUTPUT?", "get prediction output format", at_get_prediction_output);
     ei_at_cmd_register("PTHRES=", "set good prediction threshold", at_set_predict_theadshold);
     ei_at_cmd_register("PTHRES?", "get good prediction threshold", at_get_predict_theadshold);
     ei_at_cmd_register("PFILTER=", "config get only good prediction (affect only SCI FORMAT)", at_filter_prediction);

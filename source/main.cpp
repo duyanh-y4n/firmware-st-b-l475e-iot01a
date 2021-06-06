@@ -54,7 +54,7 @@ static bool _prediction_output_good_only=false;
 //#ifndef AT_DEBUG_OUTPUT
 //#define AT_DEBUG_OUTPUT printf
 //#endif //AT_DEBUG_OUTPUT
-static bool AT_DEBUG_OUTPUT_ENABLE = true;
+static bool AT_DEBUG_OUTPUT_ENABLE = false;
 void AT_DEBUG_OUTPUT(const char *format, ...){
     if(true==AT_DEBUG_OUTPUT_ENABLE){
         va_list myargs;
@@ -82,7 +82,7 @@ void set_debug_output_en(char *arg){
     }
 }
 
-void prv_get_prediction_output(){
+void at_get_prediction_output(){
     switch (_prediction_output_config) {
         case PREDICTION_OUTPUT_CONFIG_SHORT:
             AT_OUTPUT("+CONFIGPREDICTIONOUTPUT=SHORT\r\n");
@@ -102,7 +102,7 @@ void prv_get_prediction_output(){
     }
 }
 
-void prv_set_prediction_output(char* prediction_output_config){
+void at_set_prediction_output(char* prediction_output_config){
     uint8_t temp;
     switch (temp) {
         case PREDICTION_OUTPUT_CONFIG_SHORT: //SHORT output
@@ -120,7 +120,7 @@ void prv_set_prediction_output(char* prediction_output_config){
     }
 }
 
-void set_predict_good_only(char *arg){
+void at_filter_prediction(char *arg){
     uint8_t good_only = atoi(arg);
     switch (good_only) {
         case 0x01:
@@ -170,14 +170,14 @@ prediction_t my_prediction;
 #define CLASS_NOISE_INDEX 0
 #define CLASS_UNKNOWN_INDEX 1
 #define MEANINGFUL_CLASS_INDEX 1
-static float PREDICT_THRESHOLD=0.2;
+static float PREDICT_THRESHOLD=0.8;
 
-void get_predict_theadshold(){
+void at_get_predict_theadshold(){
     AT_DEBUG_OUTPUT("+PTHRES=%.2f\r\n", PREDICT_THRESHOLD);
     return;
 }
 
-void set_predict_theadshold(char* arg){
+void at_set_predict_theadshold(char* arg){
     float threshold = atof(arg);
     if(threshold<1.0){
         PREDICT_THRESHOLD = threshold;
@@ -389,18 +389,18 @@ void fill_memory() {
 
 void prvAtCmdInit(){
     ei_at_register_generic_cmds();
-    ei_at_cmd_register("FILLMEMORY", "Try and fill the full RAM, to report free heap stats", fill_memory);
+    //ei_at_cmd_register("FILLMEMORY", "Try and fill the full RAM, to report free heap stats", fill_memory);
     ei_at_cmd_register("RUNIMPULSE", "Run the impulse", run_nn_normal);
     ei_at_cmd_register("RUNIMPULSEDEBUG", "Run the impulse with debug messages", run_nn_debug);
     #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
     ei_at_cmd_register("RUNIMPULSECONT", "Run the impulse continuously", run_nn_continuous_normal);
     ei_at_cmd_register("RUNIMPULSECONTDEBUG", "Run the impulse continuously with debug messages", run_nn_continuous_debug);
     //TODO: rename this commands
-    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT=", "set prediction output format", prv_set_prediction_output);
-    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT?", "get prediction output format", prv_get_prediction_output);
-    ei_at_cmd_register("PTHRES=", "set good prediction threshold", set_predict_theadshold);
-    ei_at_cmd_register("PTHRES?", "get good prediction threshold", get_predict_theadshold);
-    ei_at_cmd_register("PGOODONLY=", "config get only good prediction (affect only SCI FORMAT)", set_predict_good_only);
+    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT=", "set prediction output format", at_set_prediction_output);
+    ei_at_cmd_register("CONFIGPREDICTIONOUTPUT?", "get prediction output format", at_get_prediction_output);
+    ei_at_cmd_register("PTHRES=", "set good prediction threshold", at_set_predict_theadshold);
+    ei_at_cmd_register("PTHRES?", "get good prediction threshold", at_get_predict_theadshold);
+    ei_at_cmd_register("PFILTER=", "config get only good prediction (affect only SCI FORMAT)", at_filter_prediction);
     ei_at_cmd_register("DOUTPUTEN=", "enable debug output", set_debug_output_en);
     ei_at_cmd_register("CLASSLIST", "enable debug output", get_supported_class);
     #endif
@@ -442,7 +442,7 @@ int main() {
 
     // intialize configuration
 
-    //prvAtCmdInit();
+    prvAtCmdInit();
 
     //if (ei_config_has_wifi()) {
         //connect_to_wifi();
@@ -453,11 +453,11 @@ int main() {
     AT_DEBUG_OUTPUT("------------------------\n");
     AT_DEBUG_OUTPUT("SPEECH COMMAND INTERFACE\n");
 
-    // print_memory_info();
+     print_memory_info();
 
-    //repl.start_repl();
-    run_nn_continuous_normal();
-    run_nn_normal();
+    repl.start_repl();
+    //run_nn_continuous_normal();
+    //run_nn_normal();
 
     main_application_queue.dispatch_forever();
 }

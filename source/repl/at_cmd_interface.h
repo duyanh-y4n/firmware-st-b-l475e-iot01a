@@ -262,7 +262,8 @@ bool ei_at_cmd_handle(const char *cmd_in) {
 
     // now do some command parsing...
     if (strlen(cmd) < 4 || cmd[0] != 'A' || cmd[1] != 'T' || cmd[2] != '+') {
-        printf("Not a valid AT command (%s)\n", cmd);
+        //printf("Not a valid AT command (%s)\n", cmd);
+        printf("ERROR\n");
         goto clear_up;
     }
 
@@ -346,7 +347,8 @@ bool ei_at_cmd_handle(const char *cmd_in) {
     // handled = handle_at_command(args, arg_count);
 
     if (!handled) {
-        printf("No handler for AT command (%s)\n", cmd);
+        //printf("No handler for AT command (%s)\n", cmd);
+        printf("ERROR\n");
         goto clear_up;
     }
 

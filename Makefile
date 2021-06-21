@@ -8,7 +8,7 @@ CFLAGS= $(shell cat $(BUILD_FLAGS))
 # recommended: run mbed cli with poetry shell!!
 
 .PHONY: all
-all: clean build debug call_graph debug
+all: clean build debug debug
 clean:
 	rm -rf BUILD
 
@@ -27,13 +27,8 @@ debug_build:
 debug:
 	sh duyanhy4nscripts/debug
 
-call_graph:
-	sh gen_call_graph.sh source/*.cpp
-	sh gen_call_graph.sh source/edge-impulse-sdk/classifier/*.cpp
-	sh gen_call_graph.sh source/sensors/*.cpp
-	sh gen_call_graph.sh source/tflite-model/*.cpp
-	sh gen_call_graph.sh source/edge-impulse-sdk/tensorflow/lite/c/*.c
-	sh gen_call_graph.sh source/edge-impulse-sdk/tensorflow/lite/core/api/*.cc
-
 doxygen:
 	doxygen Doxyfile
+
+mbed_update_lib:
+	mbed deploy

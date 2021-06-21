@@ -421,18 +421,19 @@ void fill_memory() {
 
 void prvAtCmdInit(){
     ei_at_register_generic_cmds();
+    #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
     //ei_at_cmd_register("FILLMEMORY", "Try and fill the full RAM, to report free heap stats", fill_memory);
     ei_at_cmd_register("RUNSINGLE", "Run a single prediction", run_nn_single);
-    ei_at_cmd_register("RUNIMPULSE", "Run the impulse", run_nn_normal);
+    //ei_at_cmd_register("RUNIMPULSE", "Run the impulse", run_nn_normal);
     //ei_at_cmd_register("RUNIMPULSEDEBUG", "Run the impulse with debug messages", run_nn_debug);
-    #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
-    ei_at_cmd_register("RUNIMPULSECONT", "Run the impulse continuously", run_nn_continuous_normal);
+    ei_at_cmd_register("RUNCONT", "Run the impulse continuously", run_nn_continuous_normal);
+    //ei_at_cmd_register("RUNIMPULSECONT", "Run the impulse continuously", run_nn_continuous_normal);
     //ei_at_cmd_register("RUNIMPULSECONTDEBUG", "Run the impulse continuously with debug messages", run_nn_continuous_debug);
     //TODO: rename this commands
     ei_at_cmd_register("CONFPOUTPUT=", "set prediction output format", at_set_prediction_output);
     ei_at_cmd_register("CONFPOUTPUT?", "get prediction output format", at_get_prediction_output);
-    ei_at_cmd_register("PTHRES=", "set good prediction threshold", at_set_predict_theadshold);
-    ei_at_cmd_register("PTHRES?", "get good prediction threshold", at_get_predict_theadshold);
+    ei_at_cmd_register("PTHRES=", "set prediction probability threshold", at_set_predict_theadshold);
+    ei_at_cmd_register("PTHRES?", "get prediction probability threshold", at_get_predict_theadshold);
     ei_at_cmd_register("PFILTER=", "config get only good prediction (affect only SCI FORMAT)", at_filter_prediction);
     ei_at_cmd_register("DOUTPUTEN=", "enable debug output", set_debug_output_en);
     ei_at_cmd_register("CLASSLIST", "enable debug output", get_supported_class);
@@ -481,9 +482,8 @@ int main() {
 
      print_memory_info();
 
+     //running communication interface
     repl.start_repl();
-    //run_nn_continuous_normal();
-    //run_nn_normal();
 
     main_application_queue.dispatch_forever();
 }

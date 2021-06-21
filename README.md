@@ -24,16 +24,25 @@
   pip install mbed-cli
   ```
 
-# Install mbedos SDK
+## Install mbedos SDK
 
 ```bash
 poetry run mbed deploy
 ```
 
-# build firmware
+## build firmware
 
 ```bash
 poetry run make debug_build
 ```
 
 - more information on uploadind and debugging program, please refer to EI_README.md
+
+## Training and compiling new model
++ The model used in this work is published at https://studio.edgeimpulse.com/public/20675/latest
++ Please go to Deployment section of looking at the official documentation from Edge Impulse for more details.
+
+## code documentation
+
+Code documentation is generated automatically with doxygen. Open file doxygen/html/index.html to access documentation.
+
